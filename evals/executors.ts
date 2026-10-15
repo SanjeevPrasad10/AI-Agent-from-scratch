@@ -1,104 +1,83 @@
-import { generateText, stepCountIs, type ModelMessage, type ToolSet } from "ai";
-import { openai } from "@ai-sdk/openai";
 
-import { SYSTEM_PROMPT } from "../src/agent/system/prompt.ts";
-import type {
-  EvalData,
+import {generateText, stepCountIs, tool, type ToolSet} from "ai";
+import { openai } from "@ai-sdk/openai"; 
+import { z } from "zod";
+
+import type{
+  EvalData, 
   SingleTurnResult,
   MultiTurnEvalData,
   MultiTurnResult,
-} from "./types.ts";
-import { buildMessages, buildMockedTools } from "./utils.ts";
+} from "./types.ts"
+import { buildMessages } from "./utils";
 
-export async function singleTurnExecutor(
-  data: EvalData,
-  availableTools: ToolSet,
-): Promise<SingleTurnResult> {
+//Tool definiton -> description,inputSchema,execute Function
+
+const TOOL_DEFINITIONS: any = {
+  readFile:{
+    description:'Read the contents of a file at the specified path',
+    parameters: z.object({
+      path: z.string().describe('the path to the file that you want to read'),
+    }),
+  },
+  writeFile:{
+    description:'Write given content to the file at the given path',
+    parameters: z.object({
+      path: z.string().describe('the path to the file that you want to write to'),
+      content: z.string().describe('the content you want to write to')
+    }),
+  },
+  listFiles: {
+    description:'list all the files in a directory',
+    parameters: z.object({
+      path: z.string().describe('the path the directory in which you want to list the files '),
+    }),
+  },
+  deleteFile: {
+    description:'Delete a file at the given path',
+    parameters: z.object({
+      path: z.string().describe('the path to the file that you want to delete'),
+    }),
+  },
+  runCommand: {
+    description:'Execute a shell command and return its output',
+    parameters: z.object({
+      path: z.string().describe('the shell command to execute'),
+    }),
+  }
+}
+
+export const sngleTurnExecutor = async(data:EvalData)=>{
   const messages = buildMessages(data);
 
-  // Filter to only tools specified in data
   const tools: ToolSet = {};
-  for (const toolName of data.tools) {
-    if (availableTools[toolName]) {
-      tools[toolName] = availableTools[toolName];
+  for (const toolName of data.tools){
+    const def = TOOL_DEFINITIONS[toolName];
+
+    if(def){
+      tools[toolName] = tool({
+        description:def.description,
+        inputSchema: def.parameters,
+      });
     }
   }
-
-  const result = await generateText({
-    model: openai(data.config?.model ?? "gpt-5-mini"),
+  const {toolCalls} = await generateText({
+    model:openai(data.config?.model ?? 'gpt-5-mini'),
     messages,
     tools,
-    stopWhen: stepCountIs(1), // Single step - just get tool selection
+    stopWhen:stepCountIs(1),
     temperature: data.config?.temperature ?? undefined,
-  });
 
-  // Extract tool calls from the result
-  const toolCalls = (result.toolCalls ?? []).map((tc) => ({
+  }) 
+  const calls = toolCalls.map(tc=>({
     toolName: tc.toolName,
-    args: "args" in tc ? tc.args : {},
-  }));
+    args: 'args' in tc ? tc.args : {},
+  }))
 
-  const toolNames = toolCalls.map((tc) => tc.toolName);
-
+  const toolNames = toolCalls.map(tc => tc.toolName);
   return {
     toolCalls,
     toolNames,
     selectedAny: toolNames.length > 0,
-  };
-}
-
-/**
- * Multi-turn executor with mocked tools.
- * Runs a complete agent loop with tools returning fixed values.
- */
-export async function multiTurnWithMocks(
-  data: MultiTurnEvalData,
-): Promise<MultiTurnResult> {
-  const tools = buildMockedTools(data.mockTools);
-
-  // Build messages from either prompt or pre-filled history
-  const messages: ModelMessage[] = data.messages ?? [
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: data.prompt! },
-  ];
-
-  const result = await generateText({
-    model: openai(data.config?.model ?? "gpt-5-mini"),
-    messages,
-    tools,
-    stopWhen: stepCountIs(data.config?.maxSteps ?? 20),
-  });
-
-  // Extract all tool calls in order from steps
-  const allToolCalls: string[] = [];
-  const steps = result.steps.map((step) => {
-    const stepToolCalls = (step.toolCalls ?? []).map((tc) => {
-      allToolCalls.push(tc.toolName);
-      return {
-        toolName: tc.toolName,
-        args: "args" in tc ? tc.args : {},
-      };
-    });
-
-    const stepToolResults = (step.toolResults ?? []).map((tr) => ({
-      toolName: tr.toolName,
-      result: "result" in tr ? tr.result : tr,
-    }));
-
-    return {
-      toolCalls: stepToolCalls.length > 0 ? stepToolCalls : undefined,
-      toolResults: stepToolResults.length > 0 ? stepToolResults : undefined,
-      text: step.text || undefined,
-    };
-  });
-
-  // Extract unique tools used
-  const toolsUsed = [...new Set(allToolCalls)];
-
-  return {
-    text: result.text,
-    steps,
-    toolsUsed,
-    toolCallOrder: allToolCalls,
-  };
+  }
 }

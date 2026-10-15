@@ -1,28 +1,23 @@
 import { tools } from "./tools/index.ts";
+type Toolname = keyof typeof tools;
+export const executeTool = async (name:string, args: any)=>{
+  const tool = tools[name as Toolname];
+  // const tool = tools[name as any];
 
-export type ToolName = keyof typeof tools;
-
-export async function executeTool(
-  name: string,
-  args: Record<string, unknown>,
-): Promise<string> {
-  const tool = tools[name as ToolName];
-
-  if (!tool) {
-    return `Unknown tool: ${name}`;
+  if(!tool){
+    return "Unknown tool, this is not exists"
   }
 
   const execute = tool.execute;
-  if (!execute) {
-    // Provider tools (like webSearch) are executed by OpenAI, not us
-    return `Provider tool ${name} - executed by model provider`;
+
+  if(!execute){
+    return "This is not a registed tool"
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await execute(args as any, {
+  const result = await tool.execute(args, {
     toolCallId: "",
     messages: [],
-  });
+  })
 
   return String(result);
-}
+};

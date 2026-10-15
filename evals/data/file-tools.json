@@ -12,6 +12,7 @@
       "description": "Direct file read request - should use readFile"
     }
   },
+  
   {
     "data": {
       "prompt": "Show me all the files in the src directory",
