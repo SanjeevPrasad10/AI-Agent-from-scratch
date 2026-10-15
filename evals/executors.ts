@@ -47,7 +47,7 @@ const TOOL_DEFINITIONS: any = {
   }
 }
 
-export const sngleTurnExecutor = async(data:EvalData)=>{
+export const singleTurnExecutor = async(data:EvalData)=>{
   const messages = buildMessages(data);
 
   const tools: ToolSet = {};
@@ -62,7 +62,7 @@ export const sngleTurnExecutor = async(data:EvalData)=>{
     }
   }
   const {toolCalls} = await generateText({
-    model:openai(data.config?.model ?? 'gpt-5-mini'),
+    model:openai(data.config?.model ?? ("gemini-3.5-flash-little")),
     messages,
     tools,
     stopWhen:stepCountIs(1),
