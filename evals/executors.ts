@@ -10,6 +10,7 @@ import type{
   MultiTurnResult,
 } from "./types.ts"
 import { buildMessages } from "./utils";
+import { google } from "@ai-sdk/google";
 
 //Tool definiton -> description,inputSchema,execute Function
 
@@ -62,7 +63,7 @@ export const singleTurnExecutor = async(data:EvalData)=>{
     }
   }
   const {toolCalls} = await generateText({
-    model:openai(data.config?.model ?? ("gemini-3.5-flash-little")),
+    model:google(data.config?.model ?? ("gemini-3.5-flash-little")),
     messages,
     tools,
     stopWhen:stepCountIs(1),
