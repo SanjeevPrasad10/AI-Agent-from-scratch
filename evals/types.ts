@@ -24,7 +24,7 @@ export interface EvalData {
 export interface EvalTarget {
   /** Tools that MUST be selected (golden prompts) */
   expectedTools?: string[];
-  /** Tools that MUST NOT be selected (negative prompts) */
+  /** Tool\s that MUST NOT be selected (negative prompts) */
   forbiddenTools?: string[];
   /** Category for grouping and filtering */
   category: "golden" | "secondary" | "negative";
