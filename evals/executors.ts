@@ -1,4 +1,5 @@
 
+import "dotenv/config";
 import {generateText, stepCountIs, tool, type ToolSet} from "ai";
 import { openai } from "@ai-sdk/openai"; 
 import { z } from "zod";
@@ -63,7 +64,7 @@ export const singleTurnExecutorWithMocks = async(data:EvalData)=>{
     }
   }
   const {toolCalls} = await generateText({
-    model:google(data.config?.model ?? ("gemini-3.5-flash-little")),
+    model:google(data.config?.model ?? ("gemini-3.5-flash-lite")),
     messages,
     tools,
     stopWhen:stepCountIs(1),
