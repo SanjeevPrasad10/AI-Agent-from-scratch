@@ -22,7 +22,7 @@ Laminar.initialize({
 export const runAgent = async (userMessage: string,
   conversationHistory: ModelMessage[],
   callbacks: AgentCallbacks,
-):Promise<ModelMessage[]> {
+): Promise<ModelMessage[]> => {
   const workingHistory = filterCompatibleMessages(conversationHistory);
 
   const messages: ModelMessage[] = [{role: 'system', content: SYSTEM_PROMPT},//The system prompt for the LLM
@@ -84,4 +84,5 @@ export const runAgent = async (userMessage: string,
     const responseMessages = await result.response;
     messages.push(...responseMessages.messages);
   }
-}
+  return messages;
+};
