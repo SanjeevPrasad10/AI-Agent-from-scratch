@@ -26,6 +26,7 @@
       "description": "Directory listing request - should use listFiles"
     }
   },
+
   {
     "data": {
       "prompt": "Create a new file called hello.txt with the content 'Hello World'",
@@ -39,9 +40,10 @@
       "description": "File creation request - should use writeFile"
     }
   },
+
   {
     "data": {
-      "prompt": "Remove the old backup.txt file",
+      "prompt": "Delete the old backup.txt file",
       "tools": ["readFile", "writeFile", "listFiles", "deleteFile"]
     },
     "target": {
@@ -52,6 +54,7 @@
       "description": "File deletion request - should use deleteFile"
     }
   },
+
   {
     "data": {
       "prompt": "What's in this project? Show me around.",
@@ -65,6 +68,7 @@
       "description": "Ambiguous exploration request - likely uses listFiles"
     }
   },
+
   {
     "data": {
       "prompt": "Help me understand the codebase structure",
@@ -78,6 +82,7 @@
       "description": "Exploration request - might use listFiles and/or readFile"
     }
   },
+
   {
     "data": {
       "prompt": "What is the capital of France?",
@@ -91,6 +96,7 @@
       "description": "General knowledge question - should NOT use any file tools"
     }
   },
+
   {
     "data": {
       "prompt": "Tell me a joke about programming",
@@ -104,6 +110,7 @@
       "description": "Entertainment request - should NOT use any file tools"
     }
   },
+
   {
     "data": {
       "prompt": "Calculate 25 * 17",
@@ -116,5 +123,53 @@
     "metadata": {
       "description": "Math calculation - should NOT use any file tools"
     }
+  },
+  {
+    "data": {
+      "prompt": "Open src/index.ts and tell me what it exports",
+      "tools": ["readFile", "writeFile", "listFiles", "deleteFile"]
+    },
+    "target": { "expectedTools": ["readFile"], "category": "golden" },
+    "metadata": { "description": "Explicit file path read - should use readFile" }
+  },
+  {
+    "data": {
+      "prompt": "Just read what does the README says about installation",
+      "tools": ["readFile", "writeFile", "listFiles", "deleteFile"]
+    },
+    "target": { "expectedTools": ["readFile"], "category": "golden" },
+    "metadata": { "description": "Named file content question - should use readFile" }
+  },
+  { 
+    "data": {
+      "prompt": "Print the contents of .env.example",
+      "tools": ["readFile", "writeFile", "listFiles", "deleteFile"]
+    },
+    "target": { "expectedTools": ["readFile"], "category": "golden" },
+    "metadata": { "description": "Dotfile read request - should use readFile" }
+  },
+  {
+    "data": {
+      "prompt": "List everything inside the tests folder",
+      "tools": ["readFile", "writeFile", "listFiles", "deleteFile"]
+    },
+    "target": { "expectedTools": ["listFiles"], "category": "golden" },
+    "metadata": { "description": "Directory listing with different phrasing - should use listFiles" }
+  },
+  {
+    "data": {
+      "prompt": "Which files are in the current directory?",
+      "tools": ["readFile", "writeFile", "listFiles", "deleteFile"]
+    },
+    "target": { "expectedTools": ["listFiles"], "category": "golden" },
+    "metadata": { "description": "Current directory listing - should use listFiles" }
+  },
+  {
+    "data": {
+      "prompt": "Are there any .json files in the config directory?",
+      "tools": ["readFile", "writeFile", "listFiles", "deleteFile"]
+    },
+    "target": { "expectedTools": ["listFiles"], "category": "golden" },
+    "metadata": { "description": "File discovery by extension - should use listFiles" }
   }
 ]

@@ -17,9 +17,9 @@ import { google } from "@ai-sdk/google";
 
 const TOOL_DEFINITIONS: any = {
   readFile:{
-    description:'Read the contents of a file at the specified path',
+    description:'Read the contents of a file. User this whenever the user asks to read, inspect, or check what a document, file, or instruction says (like README, package.json, or code files).',
     parameters: z.object({
-      path: z.string().describe('the path to the file that you want to read'),
+      path: z.string().describe('The file path to read. I the user mentions "README",wtihout an extension, automatically use "README.md". If user mentions "package" use "package.json". '),
     }),
   },
   writeFile:{

@@ -1,9 +1,12 @@
+
+import { streamText, type ModelMessage } from "ai";
 import { generateText, stepCountIs } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { SYSTEM_PROMPT } from "./system/prompt";
 import { tools } from "./tools/index.ts";
 import { Laminar, getTracer } from '@lmnr-ai/lmnr';
-
+import type { AgentCallbacks, ToolCallInfo } from "../types.ts";
+import { filterCompatibleMessages } from "./system/filterMessages.ts"
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY,
@@ -16,42 +19,69 @@ Laminar.initialize({
 });
 
 
-export const runAgent = async (userMessage: string) => {
-  const { text, steps } = await generateText({
-    model: google(MODEL_NAME),
-    // prompt: userMessage,
-    messages: [],
-    system: SYSTEM_PROMPT,
-    tools,
-    stopWhen: stepCountIs(2), // 👈 Tells AI SDK v5 to run 2 steps!
-    experimental_telemetry:{
-      isEnabled:true,
-      tracer:getTracer(),
-    }
-  });
+export const runAgent = async (userMessage: string,
+  conversationHistory: ModelMessage[],
+  callbacks: AgentCallbacks,
+):Promise<ModelMessage[]> {
+  const workingHistory = filterCompatibleMessages(conversationHistory);
 
-  console.log("Steps count:", steps.length);
-  for (let i = 0; i < steps.length; i++) {
-    const step = steps[i];
-    console.log(`\n--- Step ${i + 1} ---`);
-    if (step.toolCalls?.length) {
-      console.log("👉 Tool called:", step.toolCalls.map((t: any) => t.toolName).join(", "));
+  const messages: ModelMessage[] = [{role: 'system', content: SYSTEM_PROMPT},//The system prompt for the LLM
+    ...workingHistory,//the conversation yet so far.
+    {role: 'user', content: userMessage}//The new message that the user sent us
+  ];
+  let fullResponse = "";
+
+  while(true){
+    const result = streamText({
+      model:google(MODEL_NAME),
+      messages,
+      tools,
+      experimental_telemetry:{
+        isEnabled:true,
+        tracer: getTracer()
+      }
+    });
+
+    const toolCalls: ToolCallInfo[] = [];
+    let currentText = "";
+    let streamError: Error | null = null
+
+    //We are catching the tokens here in a stream way
+    try{
+      for await (const chunk of result.fullStream){
+        if(chunk.type === 'text-delta'){
+          currentText += chunk.text;
+          callbacks.onToken(chunk.text);
+        }
+        if(chunk.type === 'tool-call'){
+          const input = 'input' in chunk ? chunk.input : {};
+          toolCalls.push({
+            toolCallId: chunk.toolCallId,
+            toolName: chunk.toolName,
+            args: input as any,
+          });
+          callbacks.onToolCallStart(chunk.toolName, input);
+        }
+      }
+    } catch(e){
+      streamError = e as Error;
+      if(!currentText && !streamError.message.includes('No output generated')){
+        throw streamError;
+      }
     }
-    if (step.toolResults?.length) {
-      // 👈 Use r.output for AI SDK v5
-      console.log(" Tool result:", step.toolResults.map((r: any) => r.output).join(", "));
+    if(streamError && !currentText){
+      fullResponse = 'Sorry about that.';
+      callbacks.onToken(fullResponse);
+      break;
     }
-    if (step.text) {
-      console.log(" Model answer:", step.text);
+
+    const finishReason =  await result.finishReason;
+    if (finishReason !== 'tool-calls' || toolCalls.length === 0){
+      const responseMessages = await result.response;
+      messages.push(...responseMessages.messages);
+      break;
     }
+    const responseMessages = await result.response;
+    messages.push(...responseMessages.messages);
   }
-
-  if (text) {
-    console.log("\n Final Answer:", text);
-  }
-  console.log("done")
-
-};
-Laminar.flush();
-
-runAgent("What is the current date and time right now??");
+}
