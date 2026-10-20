@@ -2,7 +2,7 @@
 import { streamText, type ModelMessage } from "ai";
 import { generateText, stepCountIs } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { SYSTEM_PROMPT } from "./system/prompt";
+import { SYSTEM_PROMPT } from "./system/prompt.ts";
 import { tools } from "./tools/index.ts";
 import { Laminar, getTracer } from '@lmnr-ai/lmnr';
 import type { AgentCallbacks, ToolCallInfo } from "../types.ts";
@@ -17,7 +17,6 @@ const MODEL_NAME = "gemini-3.5-flash-lite";
 Laminar.initialize({
   projectApiKey: process.env.LMNR_PROJCT_API_KEY
 });
-
 
 export const runAgent = async (userMessage: string,
   conversationHistory: ModelMessage[],
