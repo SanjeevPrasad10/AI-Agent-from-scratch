@@ -59,6 +59,7 @@ export interface MockToolConfig {
  * Input data for multi-turn agent evaluations.
  * Supports both fresh conversations and mid-conversation scenarios.
  */
+
 export interface MultiTurnEvalData {
   /** User prompt for fresh conversation (use this OR messages, not both) */
   prompt?: string;
